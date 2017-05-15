@@ -1,0 +1,18 @@
+<launch>
+  <arg name="input_image_topic" default="/image" />
+
+  <include file="$(find opencv_apps)/launch/face_detection.launch">
+    <arg name="face_cascade_name" value="$(find face_detection_bridge)/cascade/haarcascade_frontalface_default.xml" />
+    <arg name="eyes_cascade_name" value="$(find face_detection_bridge)/cascade/haarcascade_eye_tree_eyeglasses.xml" />
+
+    <arg name="image" value="$(arg input_image_topic)"/>
+    <arg name="debug_view" value="false" />
+  </include>
+
+  <node
+    name="face_detection_bridge"
+    pkg="face_detection_bridge"
+    type="face_detection_bridge.py"
+    output="screen"
+  />
+</launch>

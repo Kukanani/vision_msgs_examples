@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>pcl_3d_clusters</name>
+  <version>0.0.0</version>
+  <description>
+    Example 3D object detector using the Point Cloud Library.
+    Detect objects and classify them based on their size. The object's pose
+    is determined by the position and principal dimensions of the point cloud.
+  </description>
+
+  <maintainer email="adam.d.allevato@gmail.com">Adam Allevato</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>tf</depend>
+  <depend>pcl_ros</depend>
+  <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
+
+  <export></export>
+</package>

@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>vision_examples</name>
+  <version>0.0.0</version>
+  <description>Various example computer vision classifiers</description>
+
+  <maintainer email="adam.d.allevato@gmail.com">Adam Allevato</maintainer>
+  <author email="adam.d.allevato@gmail.com">Adam Allevato</author>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>tf</depend>
+  <depend>vision_msgs</depend>
+  <depend>pcl_3d_cluster</depend>
+  <depend>tensorflow_inception_imagenet</depend>
+
+  <export></export>
+</package>
