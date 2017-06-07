@@ -9,7 +9,7 @@ models repository, with added ROS hooks.
 It's highly recommended to use a `virtualenv`, Docker, or some other
 virtualization solution to avoid installing a lot of global Python packages.
 
-If you have an nVidia GPU, you may also want to install CUDA and other GPU
+If you have an NVIDIA GPU, you may also want to install CUDA and other GPU
 dependencies as described in the
 [TensorFlow installation tutorial](https://www.tensorflow.org/install/).
 
@@ -20,7 +20,8 @@ Install the required python packages by navigating to the
 pip install -r requirements.txt
 ```
 
-Next, run the classifier:
+In a new terminal, run `roscore`. Now, in another terminal, with your workspace
+sourced, run the classifier:
 
 ```
 rosrun tensorflow_inception_imagenet tensorflow_classifier.py
@@ -41,7 +42,7 @@ result). When browsing the Python source file, the ROS-specific parts of the
 code are prefixed by a `# ROS:` comment so you can find them easily.
 
 
-Finally, run the listener:
+Finally, run the listener in a third (sourced) terminal:
 ```
 rosrun tensorflow_inception_imagenet tensorflow_listener.py
 ```
@@ -52,7 +53,7 @@ ImageNet classes, and print the results to the console.
 As noted above, you can override the topic on which to listen for
 classifications using the `classification_topic` parameter.
 
-If you open `tensorflow_listener.py`, you'll see that it's under 50 lines long.
+If you open `tensorflow_listener.py`, you'll see that it's under 100 lines long.
 Also, the listener has no knowledge of TensorFlow or Inception, which is great:
 the classifier could be running on a high-performance machine somewhere, and the
-listener can listen from any other machine.
+listener can listen from any other machine, without having TensorFlow installed.

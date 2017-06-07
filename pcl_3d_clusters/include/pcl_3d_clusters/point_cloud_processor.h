@@ -18,8 +18,8 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 // EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef _POINT_CLOUD_UTILS_H_
-#define _POINT_CLOUD_UTILS_H_
+#ifndef _POINT_CLOUD_PROCESSOR_H_
+#define _POINT_CLOUD_PROCESSOR_H_
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -50,7 +50,7 @@ typedef pcl::PointCloud<PointType> PC;
 typedef pcl::PointCloud<PointType>::Ptr PCP;
 typedef std::vector<pcl::PointIndices> IndexVector;
 
-class PointCloudUtils {
+class PointCloudProcessor {
 private:
 
   /*================================================*/
@@ -186,7 +186,7 @@ public:
    */
   std::vector<PCP> cluster(PCP &input, float clusterTolerance, int minClusterSize, int maxClusterSize);
 
-  PointCloudUtils();
+  PointCloudProcessor();
 
   void cb_process(sensor_msgs::PointCloud2ConstPtr point_cloud);
 };

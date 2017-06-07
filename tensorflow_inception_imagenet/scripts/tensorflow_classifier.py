@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# ==============================================================================
 # Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +16,20 @@
 # limitations under the License.
 # ==============================================================================
 
-"""Example showing how to use Tensorflow with ROS and the new vision_msgs format.
+"""Example showing how to use Tensorflow with ROS and the new vision_msgs
+format.
 
 Uses the Inception example from the Tensorflow models repository, with added
-ROS hooks.
+ROS hooks. This may not be the most accurate classifier for household or office
+environments, especially since it is trained on an extremely diverse set of
+objects, such as various animal species. However, it serves to illustrate the
+usage of TensorFlow and ROS together, using vision_msgs as a bridge.
 
-Original Description:
+the "# ROS" comments mark important ROS integration areas.
+
+Modification 2017, Adam Allevato
+
+ORIGINAL DESCRIPTION
 
 Simple image classification with Inception.
 
@@ -51,15 +60,16 @@ import re
 import sys
 import tarfile
 from copy import deepcopy
-from dicttoxml import dicttoxml
-import xmltodict
 
 import numpy as np
 from six.moves import urllib
 import tensorflow as tf
 
+
+from node_lookup import NodeLookup
+# ROS: includes
 import rospy, cv_bridge
-from vision_msgs.msg import Classification2D
+from vision_msgs.msg import Classification2D, ObjectHypothesis, VisionInfo
 from std_msgs.msg import Header
 from sensor_msgs.msg import Image
 
@@ -68,76 +78,6 @@ FLAGS = None
 # pylint: disable=line-too-long
 DATA_URL = 'http://download.tensorflow.org/models/image/imagenet/inception-2015-12-05.tgz'
 # pylint: enable=line-too-long
-
-
-class NodeLookup(object):
-  """Converts integer node ID's to human readable labels."""
-
-  def __init__(self,
-               label_lookup_path=None,
-               uid_lookup_path=None):
-    self.node_lookup = {}
-
-
-  def id_to_string(self, node_id):
-    if node_id not in self.node_lookup:
-      return ''
-    return self.node_lookup[node_id]
-
-  def from_file(self, model_dir):
-    """Loads a human readable English name for each softmax node.
-
-    """
-    label_lookup_path = os.path.join(
-        model_dir, 'imagenet_2012_challenge_label_map_proto.pbtxt')
-    uid_lookup_path = os.path.join(
-        model_dir, 'imagenet_synset_to_human_label_map.txt')
-
-    if not tf.gfile.Exists(uid_lookup_path):
-      tf.logging.fatal('File does not exist %s', uid_lookup_path)
-    if not tf.gfile.Exists(label_lookup_path):
-      tf.logging.fatal('File does not exist %s', label_lookup_path)
-
-    # Loads mapping from string UID to human-readable string
-    proto_as_ascii_lines = tf.gfile.GFile(uid_lookup_path).readlines()
-    uid_to_human = {}
-    p = re.compile(r'[n\d]*[ \S,]*')
-    for line in proto_as_ascii_lines:
-      parsed_items = p.findall(line)
-      uid = parsed_items[0]
-      human_string = parsed_items[2]
-      uid_to_human[uid] = human_string
-
-    # Loads mapping from string UID to integer node ID.
-    node_id_to_uid = {}
-    proto_as_ascii = tf.gfile.GFile(label_lookup_path).readlines()
-    for line in proto_as_ascii:
-      if line.startswith('  target_class:'):
-        target_class = int(line.split(': ')[1])
-      if line.startswith('  target_class_string:'):
-        target_class_string = line.split(': ')[1]
-        node_id_to_uid[target_class] = target_class_string[1:-2]
-
-    # Loads the final mapping of integer node ID to human-readable string
-    node_id_to_name = {}
-    for key, val in node_id_to_uid.items():
-      if val not in uid_to_human:
-        tf.logging.fatal('Failed to locate: %s', val)
-      name = uid_to_human[val]
-      node_id_to_name[key] = name
-
-    self.node_lookup = node_id_to_name
-
-  def to_rosparam(self):
-    lookup_dict = [{"id": key, "name": value} for (key, value) in self.node_lookup.iteritems()]
-    xml = dicttoxml(lookup_dict, custom_root="classes", attr_type=False)
-    rospy.set_param('/vision_database', xml)
-
-  def from_rosparam(self):
-    xml = rospy.get_param("/vision_database")
-    class_dict_list = xmltodict.parse(xml)["classes"]["item"]
-    self.node_lookup = {class_dict["id"]: class_dict["name"] for class_dict in class_dict_list}
-
 
 def create_graph(model_dir):
   """Creates a graph from saved GraphDef file and returns a saver."""
@@ -156,11 +96,26 @@ class TensorflowClassifier:
     self.image_msg = Image()
     rospy.init_node("tensorflow_example", anonymous=False)
     image_topic = rospy.get_param('~image_topic', '/camera/rgb/image_raw')
-    classification_topic = rospy.get_param('~classification_topic', '/tensorflow_inception_imagenet/classification')
+    classification_topic = rospy.get_param(
+        '~classification_topic',
+        '/classification')
+    vision_info_topic = rospy.get_param(
+        '~vision_info_topic',
+        '/vision_info')
+    database_param = rospy.get_param(
+        '~classification_topic',
+        '/tensorflow_database')
 
     rospy.Subscriber(image_topic, Image, self.cb_image_message)
-    rospy.loginfo("waiting for images to be published to {}...".format(image_topic))
+    rospy.loginfo(
+        "waiting for images to be published to {}...".format(image_topic))
     pub = rospy.Publisher(classification_topic, Classification2D, queue_size=10)
+    vision_info_pub = rospy.Publisher(vision_info_topic,
+                                      VisionInfo, queue_size=1)
+    vision_info = VisionInfo()
+    vision_info.database_location = database_param
+    vision_info.method = "TensorFlow Inception detector, trained on ImageNet"
+    vision_info.database_version = 0
     rate = rospy.Rate(10)
     # Now run inference
 
@@ -169,7 +124,7 @@ class TensorflowClassifier:
     # Creates node ID --> English string lookup.
     node_lookup = NodeLookup()
     node_lookup.from_file(FLAGS.model_dir)
-    node_lookup.to_rosparam()
+    node_lookup.to_rosparam(database_param)
 
     with tf.Session() as sess:
       image_seq = 1
@@ -178,8 +133,10 @@ class TensorflowClassifier:
       # ROS: loop until node is killed
       while not rospy.is_shutdown():
         # ROS: Wait for new image message to arrive
-        if (self.image_msg.header.seq <= image_seq) or (len(self.image_msg.data) <= 2):
+        if ((self.image_msg.header.seq <= image_seq) or
+              (len(self.image_msg.data) <= 2)):
           rate.sleep()
+          vision_info_pub.publish(vision_info)
           continue
         image_seq = self.image_msg.header.seq
 
@@ -190,21 +147,23 @@ class TensorflowClassifier:
         classification.source_img = deepcopy(self.image_msg)
         # ROS: convert image from ROS format to numpy array, and run it through
         # the Tensorflow network
-        image_arr = np.array([ord(b) for b in classification.source_img.data], ndmin=3)
-        image_data = np.reshape(image_arr, (classification.source_img.width, classification.source_img.height, 3))#[270:370, 190:290,:]
+        image_arr = np.array([ord(b) for b in classification.source_img.data],
+                             ndmin=3)
+        image_data = np.reshape(image_arr, (classification.source_img.width,
+                                classification.source_img.height, 3))
         predictions = sess.run(softmax_tensor,
                                {"DecodeJpeg:0": image_data})
 
         # to load an image from a file instead:
-        # image_data = tf.gfile.FastGFile(os.path.join(FLAGS.model_dir, 'cropped_panda.jpg'), 'rb').read()
+        # image_data =tf.gfile.FastGFile(os.path.join(FLAGS.model_dir,
+        #                                             'cropped_panda.jpg'),
+        #                                'rb').read()
         # predictions = sess.run(softmax_tensor,
         #                        {'DecodeJpeg/contents:0': image_data})
 
         predictions = np.squeeze(predictions)
 
         top_k = predictions.argsort()[-FLAGS.num_top_predictions:][::-1]
-
-
 
         os.system("clear")
         rospy.loginfo("Tensorflow Classification results: ")
@@ -214,8 +173,10 @@ class TensorflowClassifier:
           rospy.loginfo('    %s (score = %.5f)' % (human_string, score))
 
           # ROS: add results to classification message
-          classification.results.ids.append(node_id)
-          classification.results.scores.append(score)
+          result = ObjectHypothesis()
+          result.id = node_id
+          result.score = score
+          classification.results.append(result)
 
         # ROS: publish the classification message
         pub.publish(classification)

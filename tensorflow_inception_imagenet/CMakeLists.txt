@@ -8,16 +8,13 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES tensorflow_inception_imagenet
  CATKIN_DEPENDS rospy sensor_msgs vision_msgs
-#  DEPENDS system_lib
 )
 
-###########
-## Build ##
-###########
-
-include_directories(
-  ${catkin_INCLUDE_DIRS}
+catkin_install_python(
+  PROGRAMS
+    scripts/tensorflow_classifier.py
+    scripts/tensorflow_listener.py
+    scripts/node_lookup.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

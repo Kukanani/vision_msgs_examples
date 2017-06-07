@@ -18,22 +18,22 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 // EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "pcl_3d_clusters/point_cloud_utils.h"
+#include "pcl_3d_clusters/point_cloud_processor.h"
 
 #include "vision_msgs/Detection3D.h"
 #include "vision_msgs/Detection3DArray.h"
-#include "vision_msgs/CategoryDistribution.h"
+#include "vision_msgs/ObjectHypothesis.h"
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "point_cloud_utils");
-  PointCloudUtils pcu;
+  ros::init(argc, argv, "point_cloud_processor");
+  PointCloudProcessor pcu;
   ros::spin();
   return 0;
 }
 
-PointCloudUtils::PointCloudUtils() :
-  node("point_cloud_utils")
+PointCloudProcessor::PointCloudProcessor() :
+  node("point_cloud_processor")
 {
   ros::NodeHandle privateNode("~");
   if(!privateNode.getParam("input_cloud_topic", cloudTopicName)) {
@@ -47,12 +47,12 @@ PointCloudUtils::PointCloudUtils() :
   allObjectsPublisher = node.advertise<sensor_msgs::PointCloud2>("/all_objects",1);
   detectionPublisher = node.advertise<vision_msgs::Detection3DArray>("/detection_array",1);
 
-  pointCloudSub = node.subscribe(cloudTopicName, 1, &PointCloudUtils::cb_process, this);
+  pointCloudSub = node.subscribe(cloudTopicName, 1, &PointCloudProcessor::cb_process, this);
 }
 
 bool compareClusterSize(const PCP& a, const PCP& b) { return a->points.size() > b->points.size(); }
 
-void PointCloudUtils::cb_process(sensor_msgs::PointCloud2ConstPtr inputMessage) {
+void PointCloudProcessor::cb_process(sensor_msgs::PointCloud2ConstPtr inputMessage) {
   if(inputMessage->height * inputMessage->width < 3) {
     ROS_DEBUG("Not segmenting cloud, it's too small.");
     return;
@@ -137,32 +137,35 @@ void PointCloudUtils::cb_process(sensor_msgs::PointCloud2ConstPtr inputMessage) 
         size_class = 4;
       }
 
-      vision_msgs::CategoryDistribution results;
-      for (int i=0; i<=1; ++i) {
-        results.ids.push_back(i);
-        float score = (i == shape_class ? 0.9 : 0.1);
-        results.scores.push_back(score);
-      }
-      for (int i=2; i<=4; ++i) {
-        results.ids.push_back(i);
-        float score = (i == size_class ? 0.8 : 0.1);
-        results.scores.push_back(score);
-      }
-
-      detection.results = results;
-      detection.header = std_msgs::Header();
-      detection.header.frame_id = originalCloudFrame;
-
       Eigen::Vector4f clusterCentroid;
       pcl::compute3DCentroid(*cluster, clusterCentroid);
-      detection.pose.position.x = clusterCentroid[0];
-      detection.pose.position.y = clusterCentroid[1];
-      detection.pose.position.z = clusterCentroid[2];
-      detection.pose.orientation.w = 1.0; // default orientation
+
+      for(int j=0; j < 5; ++j) {
+        vision_msgs::ObjectHypothesisWithPose result;
+        result.pose.position.x = clusterCentroid[0];
+        result.pose.position.y = clusterCentroid[1];
+        result.pose.position.z = clusterCentroid[2];
+        result.pose.orientation.w = 1.0; // default orientation
+        detection.results.push_back(result);
+      }
+
+      for (int i=0; i<=1; ++i) {
+        float score = (i == shape_class ? 0.9 : 0.1);
+        detection.results[i].score = score;
+        detection.results[i].id = i;
+      }
+      for (int i=2; i<=4; ++i) {
+        float score = (i == size_class ? 0.8 : 0.1);
+        detection.results[i].score = score;
+        detection.results[i].id = i;
+      }
+
       // we could also fill the source_cloud variable here, but it's optional.
 
       detection_arr.detections.push_back(detection);
     }
+    detection_arr.header = std_msgs::Header();
+    detection_arr.header.frame_id = originalCloudFrame;
     detectionPublisher.publish(detection_arr);
 
   } else {
@@ -176,7 +179,7 @@ void PointCloudUtils::cb_process(sensor_msgs::PointCloud2ConstPtr inputMessage) 
   return;
 }
 
-PCP& PointCloudUtils::clipByDistance(PCP &unclipped,
+PCP& PointCloudProcessor::clipByDistance(PCP &unclipped,
     float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
 
   processCloud->resize(0);
@@ -213,7 +216,7 @@ PCP& PointCloudUtils::clipByDistance(PCP &unclipped,
   return processCloud;
 }
 
-PCP& PointCloudUtils::voxelGridify(PCP &loose, float gridSize) {
+PCP& PointCloudProcessor::voxelGridify(PCP &loose, float gridSize) {
   //ROS_INFO("Voxel grid filtering...");
 
   processCloud->resize(0);
@@ -226,7 +229,7 @@ PCP& PointCloudUtils::voxelGridify(PCP &loose, float gridSize) {
   return processCloud;
 }
 
-PCP& PointCloudUtils::removePrimaryPlanes(PCP &input, int maxIterations, float thresholdDistance,
+PCP& PointCloudProcessor::removePrimaryPlanes(PCP &input, int maxIterations, float thresholdDistance,
     float percentageGood) {
   //ROS_INFO("Filtering planes...");
   PCP planes(new PC());
@@ -285,7 +288,7 @@ PCP& PointCloudUtils::removePrimaryPlanes(PCP &input, int maxIterations, float t
   return input;
 }
 
-std::vector<PCP> PointCloudUtils::cluster(PCP &input, float clusterTolerance,
+std::vector<PCP> PointCloudProcessor::cluster(PCP &input, float clusterTolerance,
     int minClusterSize, int maxClusterSize) {
   clusters.clear();
 
