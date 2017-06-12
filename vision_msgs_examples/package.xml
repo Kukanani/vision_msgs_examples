@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>vision_examples</name>
+  <name>vision_msgs_examples</name>
   <version>0.0.0</version>
-  <description>Various example computer vision classifiers</description>
+  <description>
+    Various example computer vision classifiers, all using vision_msgs for
+    communication.
+  </description>
 
   <maintainer email="adam.d.allevato@gmail.com">Adam Allevato</maintainer>
   <author email="adam.d.allevato@gmail.com">Adam Allevato</author>
