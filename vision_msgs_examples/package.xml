@@ -19,6 +19,7 @@
   <depend>vision_msgs</depend>
   <depend>pcl_3d_cluster</depend>
   <depend>tensorflow_inception_imagenet</depend>
+  <depend>face_detector</depend>
 
   <export></export>
 </package>
