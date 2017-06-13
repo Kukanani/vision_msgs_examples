@@ -23,6 +23,7 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "vision_msgs/msg/detection2_d_array.hpp"
 
 #include "intra_process_demo/image_pipeline/common.hpp"
 
@@ -38,10 +39,11 @@ public:
     auto qos = rmw_qos_profile_sensor_data;
     // Create a publisher on the input topic.
     pub_ = this->create_publisher<sensor_msgs::msg::Image>(output, qos);
+    detections_pub_ = this->create_publisher<vision_msgs::msg::Detection2DArray>("detections", qos);
     std::weak_ptr<std::remove_pointer<decltype(pub_.get())>::type> captured_pub = pub_;
     // Create a subscription on the output topic.
     sub_ = this->create_subscription<sensor_msgs::msg::Image>(
-      input, [captured_pub](sensor_msgs::msg::Image::UniquePtr msg) {
+      input, [captured_pub, this](sensor_msgs::msg::Image::UniquePtr msg) {
       std::cout << "image received!" << std::endl;
       auto pub_ptr = captured_pub.lock();
       if (!pub_ptr) {
@@ -55,24 +57,39 @@ public:
       cv::cvtColor(cv_mat, cv_mat, CV_BGR2RGB);
 
       cv::CascadeClassifier face_cascade;
-      face_cascade.load("/home/adam/osrf/opencv/opencv/data/haarcascades/haarcascade_frontalface_default.xml");
+      face_cascade.load("haarcascade_frontalface_default.xml");
       // Detect faces
       std::vector<cv::Rect> faces;
       face_cascade.detectMultiScale( cv_mat, faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, cv::Size(30, 30) );
 
+      vision_msgs::msg::Detection2DArray detections;
       // Draw circles on the detected faces
       for( size_t i = 0; i < faces.size(); i++ )
       {
           cv::Point center( faces[i].x + faces[i].width*0.5, faces[i].y + faces[i].height*0.5 );
           cv::ellipse( cv_mat, center, cv::Size( faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, cv::Scalar( 255, 0, 255 ), 4, 8, 0 );
+
+          vision_msgs::msg::Detection2D detection;
+          detection.bbox.x = faces[i].x;
+          detection.bbox.y = faces[i].y;
+          detection.bbox.width = faces[i].width;
+          detection.bbox.height = faces[i].height;
+
+          vision_msgs::msg::ObjectHypothesisWithPose hypo;
+          hypo.id = 0;
+          hypo.score = 1;
+          detection.results.push_back(hypo);
+          detections.detections.push_back(detection);
       }
       // Publish it along.
       pub_ptr->publish(msg);
+      this->detections_pub_->publish(detections);
     }, qos);
   }
 
 private:
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_;
+  rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr detections_pub_;
   rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr sub_;
 
   cv::VideoCapture cap_;
