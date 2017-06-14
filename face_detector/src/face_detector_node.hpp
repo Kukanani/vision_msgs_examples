@@ -24,6 +24,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
 #include "vision_msgs/msg/detection2_d_array.hpp"
+#include "vision_msgs/create_aabb.h"
 
 #include "intra_process_demo/image_pipeline/common.hpp"
 
@@ -70,10 +71,10 @@ public:
           cv::ellipse( cv_mat, center, cv::Size( faces[i].width*0.5, faces[i].height*0.5), 0, 0, 360, cv::Scalar( 255, 0, 255 ), 4, 8, 0 );
 
           vision_msgs::msg::Detection2D detection;
-          detection.bbox.x = faces[i].x;
-          detection.bbox.y = faces[i].y;
-          detection.bbox.width = faces[i].width;
-          detection.bbox.height = faces[i].height;
+          detection.bbox =
+              vision_msgs::createAABB2D(faces[i].x, faces[i].y,
+                                        faces[i].width,faces[i].height);
+
 
           vision_msgs::msg::ObjectHypothesisWithPose hypo;
           hypo.id = 0;
