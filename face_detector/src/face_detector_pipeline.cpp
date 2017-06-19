@@ -16,9 +16,9 @@
 
 #include <memory>
 
-#include "intra_process_demo/image_pipeline/camera_node.hpp"
+#include "image_pipeline/camera_node.hpp"
 #include "face_detector_node.hpp"
-#include "intra_process_demo/image_pipeline/image_view_node.hpp"
+#include "image_pipeline/image_view_node.hpp"
 #include "astra_camera/astra_driver.h"
 
 int main(int argc, char * argv[])

@@ -26,7 +26,7 @@
 #include "vision_msgs/msg/detection2_d_array.hpp"
 #include "vision_msgs/create_aabb.h"
 
-#include "intra_process_demo/image_pipeline/common.hpp"
+#include "image_pipeline/common.hpp"
 
 // Node that receives an image, locates faces and draws boxes around them, and publishes it again.
 class FaceDetectorNode : public rclcpp::Node
