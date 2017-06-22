@@ -26,15 +26,6 @@ int main(int argc, char * argv[])
   rclcpp::init(argc, argv);
   rclcpp::executors::SingleThreadedExecutor executor;
 
-  // Connect the nodes as a pipeline: camera_node -> watermark_node -> image_view_node
-  // std::shared_ptr<CameraNode> camera_node = nullptr;
-  // try {
-  //   camera_node = std::make_shared<CameraNode>("image", false);
-  // } catch (const std::exception & e) {
-  //   fprintf(stderr, "%s Exiting ..\n", e.what());
-  //   return 1;
-  // }
-
   // RGB
   size_t width = 1280;
   size_t height = 1024;
@@ -51,11 +42,10 @@ int main(int argc, char * argv[])
 
   astra_wrapper::AstraDriver drv(astra_node, astra_private_node, width, height, framerate, dwidth, dheight, dframerate, dformat);
 
-
-  auto face_detector_node =
-    std::make_shared<FaceDetectorNode>("image", "image_with_faces", "face_detector_node");
-  auto image_view_node = std::make_shared<ImageViewNode>("image_with_faces", "image_view_node", false);
-
+  auto face_detector_node = std::make_shared<FaceDetectorNode>(
+      "image", "image_with_faces", "face_detector_node", true);
+  auto image_view_node = std::make_shared<ImageViewNode>(
+      "image_with_faces", "image_view_node", false);
 
   // executor.add_node(camera_node);
   executor.add_node(astra_node);

@@ -34,8 +34,8 @@ class FaceDetectorNode : public rclcpp::Node
 public:
   FaceDetectorNode(
     const std::string & input, const std::string & output,
-    const std::string & node_name = "face_detector_node")
-  : Node(node_name, "", true)
+    const std::string & node_name = "face_detector_node", bool bgr=false)
+  : Node(node_name, "", true), bgr_(bgr)
   {
     auto qos = rmw_qos_profile_sensor_data;
     // Create a publisher on the input topic.
@@ -55,7 +55,8 @@ public:
         msg->height, msg->width,
         encoding2mat_type(msg->encoding),
         msg->data.data());
-      cv::cvtColor(cv_mat, cv_mat, CV_BGR2RGB);
+      if(bgr_)
+        cv::cvtColor(cv_mat, cv_mat, CV_BGR2RGB);
 
       cv::CascadeClassifier face_cascade;
       face_cascade.load("haarcascade_frontalface_default.xml");
@@ -95,6 +96,7 @@ private:
 
   cv::VideoCapture cap_;
   cv::Mat frame_;
+  bool bgr_;
 };
 
 #endif

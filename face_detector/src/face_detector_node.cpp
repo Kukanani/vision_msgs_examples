@@ -24,7 +24,8 @@ int main(int argc, char ** argv)
 
   std::shared_ptr<FaceDetectorNode> face_detector_node = nullptr;
   try {
-    face_detector_node = std::make_shared<FaceDetectorNode>("image", "image_with_faces");
+    face_detector_node = std::make_shared<FaceDetectorNode>(
+        "image", "image_with_faces", "face_detector_node", false);
   } catch (const std::exception & e) {
     fprintf(stderr, "%s Exiting..\n", e.what());
     return 1;
