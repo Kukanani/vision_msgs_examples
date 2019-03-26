@@ -10,7 +10,7 @@ pbr==3.0.0
 protobuf==3.3.0
 pyparsing==2.2.0
 python-dateutil==2.6.0
-PyYAML==3.12
+pyyaml>=4.2b1
 rospkg==1.1.1
 six==1.10.0
 tensorflow-gpu==1.1.0
