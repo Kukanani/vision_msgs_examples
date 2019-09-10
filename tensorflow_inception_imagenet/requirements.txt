@@ -14,5 +14,5 @@ pyyaml>=4.2b1
 rospkg==1.1.1
 six==1.10.0
 tensorflow-gpu==1.1.0
-Werkzeug==0.12.1
+Werkzeug==0.15.3
 xmltodict==0.11.0
