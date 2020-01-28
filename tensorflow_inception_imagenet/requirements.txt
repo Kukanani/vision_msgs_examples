@@ -13,6 +13,6 @@ python-dateutil==2.6.0
 pyyaml>=4.2b1
 rospkg==1.1.1
 six==1.10.0
-tensorflow-gpu==1.1.0
+tensorflow-gpu==1.15.2
 Werkzeug==0.15.3
 xmltodict==0.11.0
